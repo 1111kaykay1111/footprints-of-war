@@ -105,8 +105,18 @@ a:focus-visible,button:focus-visible,textarea:focus-visible,select:focus-visible
 .site-tabs a{margin-left:auto;font-family:var(--mono);font-size:.72rem}
 .site-frame{position:relative;aspect-ratio:16/9;max-width:100%;background:var(--grat)}
 .site-frame iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+.site-frame:fullscreen{aspect-ratio:auto;width:100vw;height:100vh}
+.site-badge{font:600 .72rem var(--mono);letter-spacing:.08em;color:var(--paper);background:var(--stamp);border-radius:4px;padding:4px 7px}
+.inside{margin-top:24px;display:flex;flex-wrap:wrap;gap:14px 24px;align-items:center;justify-content:space-between;background:var(--ink);color:var(--paper);border-radius:10px;padding:18px 20px}
+.inside > div:first-child{min-width:0;flex:1 1 300px}
+.inside .eyebrow{color:var(--paper);opacity:.75}
+.inside-t{font-family:var(--display);font-weight:800;font-stretch:80%;font-size:1.35rem;line-height:1.15;margin-top:4px}
+.inside p:last-child{font-size:.93rem;opacity:.85;margin-top:6px;max-width:52ch}
+.inside-btns{display:flex;flex-wrap:wrap;gap:8px}
+.inside .btn{margin-top:0;background:var(--paper);color:var(--ink)}
+.inside .btn.ghost{background:transparent;color:var(--paper);border:1px solid var(--paper)}
 .site-note{font-family:var(--mono);font-size:.72rem;color:var(--muted);padding:8px 12px}
-@media (max-width:560px){.site-frame{aspect-ratio:4/3}}
+@media (max-width:560px){.site-frame{aspect-ratio:4/5}}
 .sidebtns{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
 .sidebtns .btn{margin-top:0}
 
@@ -315,6 +325,7 @@ footer h2{font-size:1rem;font-stretch:85%;text-transform:uppercase;letter-spacin
             <button type="button" class="gbtn" id="gPrev" aria-label="Previous stop">←</button>
             <button type="button" class="gbtn main" id="gNext">Start the tour →</button>
             <a class="gbtn" id="gGo" href="#stop-1" hidden>Open this stop ↓</a>
+            <a class="gbtn" id="gSV" href="#" target="_blank" rel="noopener" hidden>Street View 360° ↗</a>
           </div>
         </div>
         <p class="gfail" id="gfail" hidden>The 3D globe could not load on this device. Use the Europe and Pacific maps instead.</p>
@@ -330,7 +341,7 @@ footer h2{font-size:1rem;font-stretch:85%;text-transform:uppercase;letter-spacin
       <ol class="howto">
         <li>Visit the stops in order. They follow the timeline.</li>
         <li>Read what happened, then study the evidence.</li>
-        <li>Fly to the real place in Google Earth and watch the film or source.</li>
+        <li>Step into the real place in Street View 360°: look around and walk, then watch the film or source.</li>
         <li>Answer the task questions. Your answers save on this device.</li>
         <li>Pass the quick check to earn a passport stamp.</li>
         <li>Finish with the chronology challenge and copy your answers to hand in.</li>
@@ -762,11 +773,20 @@ const satEmbed = s => `https://maps.google.com/maps?q=${s.lat},${s.lng}&t=k&z=${
 const svEmbed = s => { const v=SV[s.id]; return `https://maps.google.com/maps?layer=c&cbll=${v[0]},${v[1]}&cbp=11,${v[2]},0,0,0&output=svembed`; };
 function sitePanel(s){
   return `<div class="site" data-site="${s.id}"><div class="site-tabs" role="tablist" aria-label="View the site">
-    <button type="button" role="tab" aria-selected="true" data-sv="sat">Satellite</button>
-    <button type="button" role="tab" aria-selected="false" data-sv="street">Street View 360°</button>
-    <a href="${svLink(s)}" target="_blank" rel="noopener">Open full screen ↗</a></div>
-    <div class="site-frame"><iframe src="${satEmbed(s)}" title="Satellite view of ${esc(s.site)}" loading="lazy" allowfullscreen referrerpolicy="no-referrer-when-downgrade"></iframe></div>
-    <p class="site-note">Satellite: ${esc(s.site)}</p></div>`;
+    <span class="site-badge">360°</span>
+    <button type="button" role="tab" aria-selected="true" data-sv="street">Street View</button>
+    <button type="button" role="tab" aria-selected="false" data-sv="sat">Satellite</button>
+    <button type="button" data-fs>Full screen ⤢</button>
+    <a href="${svLink(s)}" target="_blank" rel="noopener">Open in Google Maps ↗</a></div>
+    <div class="site-frame"><iframe src="${svEmbed(s)}" title="Street View of ${esc(SV[s.id][3])}" loading="lazy" allowfullscreen referrerpolicy="no-referrer-when-downgrade"></iframe></div>
+    <p class="site-note">${svNote(s)}</p></div>`;
+}
+const svNote = s => `Street View: ${esc(SV[s.id][3])}. Drag to look around and click the arrows on the ground to walk. If the view stays blank, use Open in Google Maps.`;
+function stepInside(s){
+  return `<div class="inside"><div><p class="eyebrow">Step inside · Street View 360°</p><p class="inside-t">${esc(SV[s.id][3])}</p>
+    <p>Stand where it happened. Street View opens in Google Maps: drag to look around and click the arrows on the ground to walk.</p></div>
+    <div class="inside-btns"><a class="btn" href="${svLink(s)}" target="_blank" rel="noopener">Open Street View 360° ↗</a>
+    <a class="btn ghost" href="${geUrl(s)}" target="_blank" rel="noopener">Fly there in Google Earth ↗</a></div></div>`;
 }
 
 /* ---------- evidence renderers ---------- */
@@ -813,7 +833,7 @@ for(const s of STOPS){
       <div><p class="eyebrow">Stop ${s.id} · ${esc(s.date)} · ${esc(s.place)}</p><h3>${esc(s.title)}</h3><p class="lede">${esc(s.lede)}</p></div>
       <div class="stamp" id="stamp-${s.id}" hidden aria-label="Passport stamp earned"><span>Visited<strong>${esc(s.place.split(",")[0])}</strong>${(s.date.match(/\d{4}/g)||[""]).pop()}</span></div>
     </header>
-    ${MODE==="pages"?sitePanel(s):""}
+    ${MODE==="pages"?sitePanel(s):stepInside(s)}
     <div class="stop-grid">
       <div class="story">${s.body}${evidence(s.ev)}</div>
       <aside class="side">
@@ -918,6 +938,7 @@ function flyTo(id){
   document.getElementById("gcTitle").textContent=s.title;
   document.getElementById("gcText").textContent=`${s.site}, ${s.place}. ${s.lede}`;
   const go=document.getElementById("gGo"); go.href="#stop-"+id; go.hidden=false;
+  const sv=document.getElementById("gSV"); sv.href=svLink(s); sv.hidden=false;
   document.getElementById("gNext").textContent = id<16 ? "Next stop →" : "Final challenge →";
   document.querySelectorAll(".gpin").forEach(p=>p.classList.toggle("on", +p.dataset.id===id));
 }
@@ -934,8 +955,13 @@ document.querySelectorAll("[data-site]").forEach(box=>{
     box.querySelectorAll("[data-sv]").forEach(x=>x.setAttribute("aria-selected", x===b));
     const street=b.dataset.sv==="street";
     fr.src = street ? svEmbed(s) : satEmbed(s);
-    note.textContent = street ? `Street View: ${SV[s.id][3]}. Drag to look around.` : `Satellite: ${s.site}`;
+    fr.title = street ? `Street View of ${SV[s.id][3]}` : `Satellite view of ${s.site}`;
+    note.innerHTML = street ? svNote(s) : `Satellite: ${esc(s.site)}`;
   }));
+  const fs=box.querySelector("[data-fs]"), frame=box.querySelector(".site-frame");
+  const req=frame.requestFullscreen||frame.webkitRequestFullscreen;
+  if(!req) fs.hidden=true;
+  else fs.addEventListener("click",()=>{ try{ const p=req.call(frame); if(p&&p.catch) p.catch(()=>{}); }catch(e){} });
 });
 
 /* ---------- stamps ---------- */
